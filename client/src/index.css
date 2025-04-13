@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 270 60% 11%;
+    --foreground: 0 0% 100%;
+
+    --card: 270 60% 16%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 270 60% 16%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 270 76% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 273 100% 14%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 50% 25%;
+    --muted-foreground: 0 0% 80%;
+
+    --accent: 0 85% 71%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --highlight: 170 100% 48%;
+    --highlight-foreground: 273 100% 14%;
+
+    --border: 270 50% 30%;
+    --input: 270 50% 30%;
+    --ring: 270 76% 59%;
+
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply bg-gradient-to-br from-[#10002B] to-[#3C096C] text-foreground min-h-screen;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Clash Display', sans-serif;
+    @apply font-medium;
+  }
+}
+
+@layer components {
+  .glassmorphism {
+    @apply bg-secondary/30 backdrop-blur-md border border-white/10;
+  }
+
+  .album-rotation {
+    animation: rotateAlbum 20s linear infinite;
+    transform-origin: center;
+  }
+
+  .visualizer-bar {
+    animation: visualizer-animation 1.2s ease-in-out infinite;
+    transform-origin: bottom;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes rotateAlbum {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes visualizer-animation {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(157, 78, 221, 0.6);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 78, 221, 0.8);
+}
