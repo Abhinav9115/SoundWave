@@ -2,7 +2,9 @@ import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/home";
 import Album from "@/pages/album";
+import Albums from "@/pages/albums";
 import Player from "@/pages/player";
+import NotFound from "@/pages/not-found";
 import MiniPlayer from "@/components/mini-player";
 import Sidebar from "@/components/sidebar";
 import CustomCursor from "@/components/custom-cursor";
@@ -42,7 +44,9 @@ function App() {
           <Switch>
             <Route path="/" component={Home} />
             <Route path="/album/:id" component={Album} />
+            <Route path="/albums" component={Albums} />
             <Route path="/player" component={Player} />
+            <Route component={NotFound} />
           </Switch>
         </main>
       </div>

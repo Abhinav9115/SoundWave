@@ -2,6 +2,8 @@ import { Track } from "@/context/player-context";
 import { usePlayer } from "@/context/player-context";
 import { formatDuration } from "@/lib/mockdata";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TrackCardProps {
   track: Track;
@@ -10,15 +12,46 @@ interface TrackCardProps {
 }
 
 const TrackCard = ({ track, style, animationDelay = 0 }: TrackCardProps) => {
-  const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayer();
-
-  const isCurrentTrack = currentTrack?.id === track.id;
+  const { toast } = useToast();
+  const [isCurrentTrack, setIsCurrentTrack] = useState(false);
+  const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+  
+  // Safely use player context
+  let playerContext;
+  try {
+    playerContext = usePlayer();
+    
+    // Update our local state when player context changes
+    useEffect(() => {
+      if (playerContext) {
+        const currentlyPlaying = playerContext.currentTrack?.id === track.id;
+        setIsCurrentTrack(currentlyPlaying);
+        setIsCurrentlyPlaying(currentlyPlaying && playerContext.isPlaying);
+      }
+    }, [
+      playerContext.currentTrack, 
+      playerContext.isPlaying, 
+      track.id
+    ]);
+  } catch (error) {
+    // Context not available, we'll use default values
+    console.log("Player context not available in track card");
+  }
 
   const handlePlay = () => {
+    // Make sure the player context is available
+    if (!playerContext) {
+      toast({
+        title: "Player not ready",
+        description: "Please try again in a moment",
+      });
+      return;
+    }
+    
     if (isCurrentTrack) {
-      togglePlayPause();
+      playerContext.togglePlayPause();
     } else {
-      playTrack(track);
+      playerContext.playTrack(track);
     }
   };
 
@@ -47,7 +80,7 @@ const TrackCard = ({ track, style, animationDelay = 0 }: TrackCardProps) => {
       <div className="text-right">
         <p className="text-gray-400 text-sm">{formatDuration(track.duration)}</p>
         <button className={`text-xl ${isCurrentTrack ? 'text-highlight' : ''} mt-1`} onClick={handlePlay}>
-          {isCurrentTrack && isPlaying ? (
+          {isCurrentTrack && isCurrentlyPlaying ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

@@ -92,6 +92,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch tracks", error: (error as Error).message });
     }
   });
+  
+  // Get tracks by album ID
+  app.get("/api/albums/:id/tracks", async (req, res) => {
+    try {
+      const albumId = parseInt(req.params.id);
+      const album = await storage.getAlbum(albumId);
+      
+      if (!album) {
+        return res.status(404).json({ message: "Album not found" });
+      }
+      
+      const tracks = await storage.getTracksByAlbum(albumId);
+      
+      // Get artist info for each track
+      const tracksWithArtist = await Promise.all(
+        tracks.map(async (track) => {
+          const artist = await storage.getArtist(track.artistId);
+          return {
+            ...track,
+            album: { id: album.id, title: album.title, imageUrl: album.imageUrl },
+            artist: artist ? { id: artist.id, name: artist.name } : null
+          };
+        })
+      );
+      
+      res.json(tracksWithArtist);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch album tracks", error: (error as Error).message });
+    }
+  });
 
   // Get track by ID
   app.get("/api/tracks/:id", async (req, res) => {
