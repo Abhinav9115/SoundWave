@@ -37,7 +37,7 @@ interface Playlist {
   tracks?: Track[];
 }
 
-interface PlayerContextType {
+export interface PlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
   currentTime: number;

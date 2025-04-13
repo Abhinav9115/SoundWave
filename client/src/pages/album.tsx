@@ -4,36 +4,74 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import TrackCard from "@/components/track-card";
 import AlbumCard from "@/components/album-card";
-import { usePlayer } from "@/context/player-context";
+import { PlayerProvider, usePlayer, PlayerContextType } from "@/context/player-context";
 import { extractDominantColor } from "@/lib/color-extractor";
 import { Album as AlbumType, Track } from "@/context/player-context";
 
-const Album = () => {
+// Wrap the actual component in the provider
+const AlbumContent = () => {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/album/:id");
   const albumId = params?.id ? parseInt(params.id) : null;
-  const { playTrack, isPlaying, currentTrack, togglePlayPause } = usePlayer();
+  
+  // Create a default context with empty functions that match the required type signatures
+  let playerContext: PlayerContextType = {
+    currentTrack: null,
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    playbackProgress: 0,
+    queue: [],
+    playTrack: (_track: Track) => {},
+    togglePlayPause: () => {},
+    nextTrack: () => {},
+    previousTrack: () => {},
+    seekTo: (_time: number) => {},
+    setVolume: (_volume: number) => {},
+    addToQueue: (_track: Track) => {},
+    clearQueue: () => {},
+    shuffle: false,
+    repeat: 'none',
+    toggleShuffle: () => {},
+    toggleRepeat: () => {}
+  };
+  
+  try {
+    playerContext = usePlayer();
+  } catch (error) {
+    console.error("Failed to access player context:", error);
+  }
+  
+  const { playTrack, isPlaying, currentTrack, togglePlayPause } = playerContext;
   const [dominantColor, setDominantColor] = useState("rgba(157, 78, 221, 0.5)");
   const [isAllAlbumsLoading, setIsAllAlbumsLoading] = useState(true);
 
   // Fetch album details
-  const { data: album, isLoading: isLoadingAlbum } = useQuery({
+  const { data: album = {}, isLoading: isLoadingAlbum } = useQuery({
     queryKey: [`/api/albums/${albumId}`],
     enabled: !!albumId,
     staleTime: 60000,
   });
 
-  // Fetch all albums for recommendations
-  const { data: allAlbums, isLoading: isLoadingAllAlbums } = useQuery({
+  // Fetch all albums for recommendations  
+  const { data: allAlbums = [], isLoading: isLoadingAllAlbums } = useQuery({
     queryKey: ['/api/albums'],
     staleTime: 60000,
-    onSuccess: () => setIsAllAlbumsLoading(false)
   });
+
+  // Update loading state when allAlbums data is loaded
+  useEffect(() => {
+    if (allAlbums && Array.isArray(allAlbums) && allAlbums.length > 0) {
+      setIsAllAlbumsLoading(false);
+    }
+  }, [allAlbums]);
 
   // Extract dominant color from album cover
   useEffect(() => {
-    if (album?.imageUrl) {
-      extractDominantColor(album.imageUrl)
+    const albumData = album as any;
+    if (albumData?.imageUrl) {
+      extractDominantColor(albumData.imageUrl)
         .then(color => {
           setDominantColor(`${color}80`); // Add 50% transparency
         })
@@ -45,30 +83,32 @@ const Album = () => {
 
   // Handle play all tracks
   const handlePlayAll = () => {
-    if (!album?.tracks || album.tracks.length === 0) return;
+    const albumData = album as any;
+    if (!albumData?.tracks || !Array.isArray(albumData.tracks) || albumData.tracks.length === 0) return;
 
     // If currently playing from this album, toggle play/pause
-    if (currentTrack?.albumId === album.id) {
+    if (currentTrack?.albumId === albumData.id) {
       togglePlayPause();
     } else {
       // Start playing the first track
-      playTrack(album.tracks[0]);
+      playTrack(albumData.tracks[0]);
     }
   };
 
-  const isCurrentAlbumPlaying = isPlaying && currentTrack?.albumId === album?.id;
+  const albumData = album as any;
+  const isCurrentAlbumPlaying = isPlaying && currentTrack?.albumId === albumData?.id;
 
   // Get recommendations (other albums by same artist or random albums)
-  const recommendations = allAlbums?.filter((otherAlbum: AlbumType) => {
-    if (!album) return false;
-    if (otherAlbum.id === album.id) return false;
+  const recommendations = Array.isArray(allAlbums) ? allAlbums.filter((otherAlbum: any) => {
+    if (!albumData || !albumData.id) return false;
+    if (otherAlbum.id === albumData.id) return false;
     
     // Prioritize albums by the same artist
-    if (otherAlbum.artistId === album.artistId) return true;
+    if (otherAlbum.artistId === albumData.artistId) return true;
     
     // Include some other albums to fill out recommendations
     return allAlbums.length < 8;
-  }).slice(0, 4);
+  }).slice(0, 4) : [];
 
   if (isLoadingAlbum) {
     return (
@@ -133,20 +173,20 @@ const Album = () => {
               transition={{ duration: 0.3 }}
             >
               <img 
-                src={album.imageUrl} 
-                alt={`${album.title} album cover`}
+                src={albumData.imageUrl} 
+                alt={`${albumData.title || 'Album'} cover`}
                 className="w-full h-full object-cover"
               />
             </motion.div>
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <span className="bg-white/20 text-sm px-2 py-0.5 rounded">Album</span>
-                {album.releaseYear && (
-                  <span className="text-sm text-white/60">{album.releaseYear}</span>
+                {albumData.releaseYear && (
+                  <span className="text-sm text-white/60">{albumData.releaseYear}</span>
                 )}
               </div>
-              <h1 className="text-3xl md:text-4xl font-clash font-bold mb-2">{album.title}</h1>
-              <p className="text-xl mb-4">{album.artist?.name}</p>
+              <h1 className="text-3xl md:text-4xl font-clash font-bold mb-2">{albumData.title || 'Unknown Album'}</h1>
+              <p className="text-xl mb-4">{albumData.artist?.name || 'Unknown Artist'}</p>
               
               <div className="flex items-center space-x-4 mb-6">
                 <motion.button 
@@ -192,10 +232,12 @@ const Album = () => {
               </div>
               
               <div className="md:mt-auto text-white/60 flex space-x-4 text-sm">
-                <span>{album.tracks?.length || 0} Tracks</span>
+                <span>{albumData.tracks && Array.isArray(albumData.tracks) ? albumData.tracks.length : 0} Tracks</span>
                 <span>•</span>
                 <span>
-                  {album.tracks?.reduce((total: number, track: Track) => total + track.duration, 0) || 0} sec
+                  {albumData.tracks && Array.isArray(albumData.tracks) ? 
+                    albumData.tracks.reduce((total: number, track: any) => total + (track.duration || 0), 0) 
+                    : 0} sec
                 </span>
               </div>
             </div>
@@ -212,13 +254,17 @@ const Album = () => {
           <h2 className="font-clash font-bold text-2xl mb-4">Tracks</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {album.tracks?.map((track: Track, index: number) => (
+            {albumData.tracks && Array.isArray(albumData.tracks) ? albumData.tracks.map((track: any, index: number) => (
               <TrackCard 
                 key={track.id} 
                 track={track} 
                 animationDelay={index * 0.08}
               />
-            ))}
+            )) : (
+              <div className="col-span-2 text-center py-8 text-gray-400">
+                No tracks available for this album
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -233,14 +279,22 @@ const Album = () => {
             <h2 className="font-clash font-bold text-2xl mb-6">You might also like</h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {recommendations.map((album: AlbumType) => (
-                <AlbumCard key={album.id} album={album} />
+              {recommendations.map((albumItem: any) => (
+                <AlbumCard key={albumItem.id} album={albumItem} />
               ))}
             </div>
           </motion.div>
         )}
       </div>
     </div>
+  );
+};
+
+const Album = () => {
+  return (
+    <PlayerProvider>
+      <AlbumContent />
+    </PlayerProvider>
   );
 };
 

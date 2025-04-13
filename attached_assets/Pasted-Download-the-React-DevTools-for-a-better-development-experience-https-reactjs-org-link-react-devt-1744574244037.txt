@@ -1,0 +1,105 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+player-context.tsx:237 Uncaught Error: usePlayer must be used within a PlayerProvider
+    at usePlayer (player-context.tsx:237:11)
+    at Album (album.tsx:15:67)
+    at renderWithHooks (chunk-WERSD76P.js?v=bb63b53f:11548:26)
+    at mountIndeterminateComponent (chunk-WERSD76P.js?v=bb63b53f:14926:21)
+    at beginWork (chunk-WERSD76P.js?v=bb63b53f:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=bb63b53f:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=bb63b53f:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=bb63b53f:3733:39)
+    at beginWork$1 (chunk-WERSD76P.js?v=bb63b53f:19765:15)
+    at performUnitOfWork (chunk-WERSD76P.js?v=bb63b53f:19198:20)
+usePlayer @ player-context.tsx:237
+Album @ album.tsx:15
+renderWithHooks @ chunk-WERSD76P.js?v=bb63b53f:11548
+mountIndeterminateComponent @ chunk-WERSD76P.js?v=bb63b53f:14926
+beginWork @ chunk-WERSD76P.js?v=bb63b53f:15914
+callCallback2 @ chunk-WERSD76P.js?v=bb63b53f:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=bb63b53f:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=bb63b53f:3733
+beginWork$1 @ chunk-WERSD76P.js?v=bb63b53f:19765
+performUnitOfWork @ chunk-WERSD76P.js?v=bb63b53f:19198
+workLoopSync @ chunk-WERSD76P.js?v=bb63b53f:19137
+renderRootSync @ chunk-WERSD76P.js?v=bb63b53f:19116
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=bb63b53f:18874
+flushSyncCallbacks @ chunk-WERSD76P.js?v=bb63b53f:9119
+(anonymous) @ chunk-WERSD76P.js?v=bb63b53f:18627
+player-context.tsx:237 Uncaught Error: usePlayer must be used within a PlayerProvider
+    at usePlayer (player-context.tsx:237:11)
+    at Album (album.tsx:15:67)
+    at renderWithHooks (chunk-WERSD76P.js?v=bb63b53f:11548:26)
+    at mountIndeterminateComponent (chunk-WERSD76P.js?v=bb63b53f:14926:21)
+    at beginWork (chunk-WERSD76P.js?v=bb63b53f:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=bb63b53f:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=bb63b53f:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=bb63b53f:3733:39)
+    at beginWork$1 (chunk-WERSD76P.js?v=bb63b53f:19765:15)
+    at performUnitOfWork (chunk-WERSD76P.js?v=bb63b53f:19198:20)
+usePlayer @ player-context.tsx:237
+Album @ album.tsx:15
+renderWithHooks @ chunk-WERSD76P.js?v=bb63b53f:11548
+mountIndeterminateComponent @ chunk-WERSD76P.js?v=bb63b53f:14926
+beginWork @ chunk-WERSD76P.js?v=bb63b53f:15914
+callCallback2 @ chunk-WERSD76P.js?v=bb63b53f:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=bb63b53f:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=bb63b53f:3733
+beginWork$1 @ chunk-WERSD76P.js?v=bb63b53f:19765
+performUnitOfWork @ chunk-WERSD76P.js?v=bb63b53f:19198
+workLoopSync @ chunk-WERSD76P.js?v=bb63b53f:19137
+renderRootSync @ chunk-WERSD76P.js?v=bb63b53f:19116
+recoverFromConcurrentError @ chunk-WERSD76P.js?v=bb63b53f:18736
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=bb63b53f:18879
+flushSyncCallbacks @ chunk-WERSD76P.js?v=bb63b53f:9119
+(anonymous) @ chunk-WERSD76P.js?v=bb63b53f:18627
+chunk-WERSD76P.js?v=bb63b53f:14032 The above error occurred in the <Album> component:
+
+    at Album (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/src/pages/album.tsx:28:24)
+    at Route (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bb63b53f:323:16)
+    at Switch (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bb63b53f:379:17)
+    at main
+    at div
+    at App (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/src/App.tsx?t=1744573621558&v=UG-GbGFY7_2rwnDnpw9X9:29:43)
+    at PlayerProvider (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/src/context/player-context.tsx?v=UG-GbGFY7_2rwnDnpw9X9:22:34)
+    at QueryClientProvider (https://87cee89f-6a14-44c6-b468-d61998d2dcbd-00-29sihcfbcs7lu.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=bb63b53f:2805:3)
+    at Root
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-WERSD76P.js?v=bb63b53f:14032
+update.callback @ chunk-WERSD76P.js?v=bb63b53f:14052
+callCallback @ chunk-WERSD76P.js?v=bb63b53f:11248
+commitUpdateQueue @ chunk-WERSD76P.js?v=bb63b53f:11265
+commitLayoutEffectOnFiber @ chunk-WERSD76P.js?v=bb63b53f:17093
+commitLayoutMountEffects_complete @ chunk-WERSD76P.js?v=bb63b53f:17980
+commitLayoutEffects_begin @ chunk-WERSD76P.js?v=bb63b53f:17969
+commitLayoutEffects @ chunk-WERSD76P.js?v=bb63b53f:17920
+commitRootImpl @ chunk-WERSD76P.js?v=bb63b53f:19353
+commitRoot @ chunk-WERSD76P.js?v=bb63b53f:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=bb63b53f:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=bb63b53f:9119
+(anonymous) @ chunk-WERSD76P.js?v=bb63b53f:18627
+chunk-WERSD76P.js?v=bb63b53f:9129 Uncaught Error: usePlayer must be used within a PlayerProvider
+    at usePlayer (player-context.tsx:237:11)
+    at Album (album.tsx:15:67)
+    at renderWithHooks (chunk-WERSD76P.js?v=bb63b53f:11548:26)
+    at mountIndeterminateComponent (chunk-WERSD76P.js?v=bb63b53f:14926:21)
+    at beginWork (chunk-WERSD76P.js?v=bb63b53f:15914:22)
+    at beginWork$1 (chunk-WERSD76P.js?v=bb63b53f:19753:22)
+    at performUnitOfWork (chunk-WERSD76P.js?v=bb63b53f:19198:20)
+    at workLoopSync (chunk-WERSD76P.js?v=bb63b53f:19137:13)
+    at renderRootSync (chunk-WERSD76P.js?v=bb63b53f:19116:15)
+    at recoverFromConcurrentError (chunk-WERSD76P.js?v=bb63b53f:18736:28)
+usePlayer @ player-context.tsx:237
+Album @ album.tsx:15
+renderWithHooks @ chunk-WERSD76P.js?v=bb63b53f:11548
+mountIndeterminateComponent @ chunk-WERSD76P.js?v=bb63b53f:14926
+beginWork @ chunk-WERSD76P.js?v=bb63b53f:15914
+beginWork$1 @ chunk-WERSD76P.js?v=bb63b53f:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=bb63b53f:19198
+workLoopSync @ chunk-WERSD76P.js?v=bb63b53f:19137
+renderRootSync @ chunk-WERSD76P.js?v=bb63b53f:19116
+recoverFromConcurrentError @ chunk-WERSD76P.js?v=bb63b53f:18736
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=bb63b53f:18879
+flushSyncCallbacks @ chunk-WERSD76P.js?v=bb63b53f:9119
+(anonymous) @ chunk-WERSD76P.js?v=bb63b53f:18627
