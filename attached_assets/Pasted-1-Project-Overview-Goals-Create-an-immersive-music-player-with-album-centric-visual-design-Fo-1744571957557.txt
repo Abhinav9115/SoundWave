@@ -1,0 +1,118 @@
+1. Project Overview & Goals
+
+Create an immersive music player with album-centric visual design
+Focus on smooth animations and intuitive user interactions
+Showcase responsive design across desktop and mobile devices
+Emphasize visual aesthetics while maintaining full functionality
+
+2. Core Features & Components
+Player Interface
+
+Full-screen album art display with dynamic color extraction
+Playback controls (play/pause, skip, previous, shuffle, repeat)
+Progress bar with interactive seeking functionality
+Volume control with visual indicator
+Minimalist design that emphasizes album artwork
+
+Music Library
+
+Grid/masonry layout of album covers with hover effects
+List view option with additional track information
+Search and filter functionality by artist, album, genre
+Recently played and most played sections
+Animated transitions between library and player views
+
+Album View
+
+Expanded album detail page with tracklist
+Album metadata (year, genre, artist, duration)
+Track listing with individual play buttons
+Related albums/recommendations section
+Visual treatment that matches album aesthetic
+
+Playlist Management
+
+Create, edit, and delete custom playlists
+Drag and drop functionality for playlist organization
+Visual cues for currently playing playlist
+Shareable playlist links with preview images
+
+User Experience Enhancements
+
+Audio visualizer that responds to music frequencies
+Custom audio waveforms for tracks
+Lyrics display option with time-synced highlighting
+Dark/light mode toggle that complements album artwork
+
+3. Technical Implementation
+Frontend Stack
+
+React.js for component architecture
+Framer Motion for fluid animations and transitions
+Howler.js or Web Audio API for audio handling
+Styled Components or Tailwind CSS for styling
+
+Audio Management
+
+Preloading mechanism for smooth track transitions
+Audio buffering for uninterrupted playback
+Mock audio files with varied lengths and genres
+Simulated streaming behavior
+
+Visual Effects
+
+Dynamic color palette extraction from album covers
+Parallax scrolling effects for album browsing
+Subtle background gradients based on album colors
+Micro-interactions for all user actions
+
+4. UI/UX Design Elements
+Album Cover Treatments
+
+Subtle shadow effects for depth
+Animated transitions (flip, fade, slide) between albums
+Vinyl record or CD rotation animation during playback
+Reflective surfaces or glass morphism effects
+
+Color Scheme
+
+Dynamic primary colors extracted from current album
+Consistent neutral background to showcase artwork
+Complementary accent colors for controls and text
+High contrast for accessibility while maintaining aesthetics
+
+Typography
+
+Clean, modern font for track information
+Variable font weights for visual hierarchy
+Animated text transitions for track changes
+Proper text truncation for long titles
+
+Layout & Navigation
+
+Gesture-based navigation for mobile (swipe between albums)
+Smooth transitions between views and states
+Persistent mini-player when browsing library
+Context-aware navigation (return to previous view)
+
+5. Differentiating Features
+
+Album artwork zoom feature with pinch/click controls
+"Now playing" visualizer with unique style for each genre
+Haptic feedback for mobile interactions
+History timeline showing recently played tracks with timestamps
+Mood-based playlist generation from album color schemes
+
+6. Responsive Design Strategy
+
+Fluid layout that adapts to any screen size
+Optimized touch targets for mobile users
+Alternative layouts for landscape/portrait orientations
+Keyboard shortcuts for desktop users
+
+7. Performance Optimization
+
+Lazy loading for album artwork
+Image compression without quality loss
+Efficient state management to prevent re-renders
+Animation optimization for smooth 60fps performance
