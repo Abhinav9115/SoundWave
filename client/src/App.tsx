@@ -6,27 +6,32 @@ import Player from "@/pages/player";
 import MiniPlayer from "@/components/mini-player";
 import Sidebar from "@/components/sidebar";
 import CustomCursor from "@/components/custom-cursor";
-import { usePlayer, Track } from "@/context/player-context";
-import { useEffect } from "react";
+import { Track } from "@/context/player-context";
+import { useState, useEffect } from "react";
 
 function App() {
-  // Safely access player context
-  let currentTrack: Track | null = null;
-  try {
-    const playerContext = usePlayer();
-    currentTrack = playerContext.currentTrack;
-  } catch (error) {
-    console.error("Failed to access player context:", error);
-  }
+  // We don't use usePlayer here anymore, we'll pass the needed props to children
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [title, setTitle] = useState("Soundwave Music Player");
 
-  // Set up title
+  // Set up title when track changes
   useEffect(() => {
     if (currentTrack) {
-      document.title = `${currentTrack.title} - ${currentTrack.artist?.name || "Soundwave"}`;
+      setTitle(`${currentTrack.title} - ${currentTrack.artist?.name || "Soundwave"}`);
     } else {
-      document.title = "Soundwave Music Player";
+      setTitle("Soundwave Music Player");
     }
   }, [currentTrack]);
+
+  // Update document title when title state changes
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+
+  // This function will be called by child components when a track is playing
+  const updateCurrentTrack = (track: Track | null) => {
+    setCurrentTrack(track);
+  };
 
   return (
     <>
