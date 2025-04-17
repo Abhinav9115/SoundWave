@@ -56,15 +56,22 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Use environment variable for port, fallback to 5000
+  const port = process.env.PORT || 5000;
+
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
+    // reusePort might not be necessary or compatible with Vercel's environment
+    // reusePort: true 
   }, () => {
     log(`serving on port ${port}`);
+  }).on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      log(`Port ${port} is already in use. Please try a different port.`);
+    } else {
+      log(`Server error: ${err.message}`);
+    }
+    process.exit(1);
   });
 })();
