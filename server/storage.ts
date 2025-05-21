@@ -1,15 +1,26 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../shared/schema';
 import { 
-  users, tracks, albums, artists, playlists, playlistTracks, recentlyPlayed,
   type User, type Track, type Album, type Artist, type Playlist, type PlaylistTrack, type RecentlyPlayed,
   type InsertUser, type InsertTrack, type InsertAlbum, type InsertArtist, type InsertPlaylist, 
   type InsertPlaylistTrack, type InsertRecentlyPlayed
-} from "@shared/schema";
+} from "../shared/schema";
+import { eq, desc, and, asc, sql } from 'drizzle-orm';
+import { parse } from 'pg-connection-string';
+import * as dotenv from 'dotenv';
+import * as bcrypt from 'bcryptjs'; // Import bcryptjs
+
+// Load environment variables from .env.local at the very top
+// Ensures DATABASE_URL is available when this module is loaded.
+dotenv.config({ path: '.env.local' });
 
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  verifyPassword(password: string, hash: string): Promise<boolean>; // Added new method
   
   // Artist operations
   getArtist(id: number): Promise<Artist | undefined>;
@@ -45,284 +56,418 @@ export interface IStorage {
   // Recently played operations
   getRecentlyPlayed(userId: number, limit?: number): Promise<{ track: Track; album: Album; artist: Artist }[]>;
   addRecentlyPlayed(recentlyPlayed: InsertRecentlyPlayed): Promise<RecentlyPlayed>;
+
+  // Artist Update/Delete
+  updateArtist(id: number, data: Partial<InsertArtist>): Promise<Artist | undefined>;
+  deleteArtist(id: number): Promise<boolean>;
+
+  // Album Update/Delete
+  updateAlbum(id: number, data: Partial<InsertAlbum>): Promise<Album | undefined>;
+  deleteAlbum(id: number): Promise<boolean>;
+
+  // Track Update/Delete
+  updateTrack(id: number, data: Partial<InsertTrack>): Promise<Track | undefined>;
+  deleteTrack(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private artists: Map<number, Artist>;
-  private albums: Map<number, Album>;
-  private tracks: Map<number, Track>;
-  private playlists: Map<number, Playlist>;
-  private playlistTracks: Map<number, PlaylistTrack>;
-  private recentlyPlayed: Map<number, RecentlyPlayed>;
-  
-  private userIdCounter: number;
-  private artistIdCounter: number;
-  private albumIdCounter: number;
-  private trackIdCounter: number;
-  private playlistIdCounter: number;
-  private playlistTrackIdCounter: number;
-  private recentlyPlayedIdCounter: number;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  // This check is now more reliable as dotenv.config() has been called.
+  throw new Error("DATABASE_URL is not set. Ensure .env.local exists and is configured, or the variable is set in the environment.");
+}
+const pgConfig = parse(connectionString);
 
-  constructor() {
-    this.users = new Map();
-    this.artists = new Map();
-    this.albums = new Map();
-    this.tracks = new Map();
-    this.playlists = new Map();
-    this.playlistTracks = new Map();
-    this.recentlyPlayed = new Map();
-    
-    this.userIdCounter = 1;
-    this.artistIdCounter = 1;
-    this.albumIdCounter = 1;
-    this.trackIdCounter = 1;
-    this.playlistIdCounter = 1;
-    this.playlistTrackIdCounter = 1;
-    this.recentlyPlayedIdCounter = 1;
+// Explicitly pass connection parameters to avoid interference from PG* env vars
+const client = postgres({
+  host: pgConfig.host || 'localhost',
+  port: pgConfig.port ? parseInt(pgConfig.port, 10) : 5432,
+  database: pgConfig.database || undefined, 
+  user: pgConfig.user || undefined,
+  password: pgConfig.password || undefined,
+  ssl: pgConfig.ssl ? { rejectUnauthorized: false } : false, 
+});
 
-    // Initialize with sample data for testing
-    this.initializeData();
-  }
+// Export db instance for use in other modules like seeding scripts
+export const db = drizzle(client, { schema });
 
-  private initializeData() {
-    // Create some artists
-    const cyberDreams = this.createArtist({ name: "Cyber Dreams", imageUrl: "https://images.unsplash.com/photo-1593697972672-b1c1074e69e9", description: "Electronic music producer known for futuristic sounds" });
-    const lunaRay = this.createArtist({ name: "Luna Ray", imageUrl: "https://images.unsplash.com/photo-1529068755536-a5ade0dcb4e8", description: "Indie pop artist with ethereal vocals" });
-    const digitalPulse = this.createArtist({ name: "Digital Pulse", imageUrl: "https://images.unsplash.com/photo-1520785643438-5bf77931f493", description: "EDM collective with energetic beats" });
-    const echoChamber = this.createArtist({ name: "Echo Chamber", imageUrl: "https://images.unsplash.com/photo-1534126511673-b6899657816a", description: "Ambient music composer focusing on atmospheric sounds" });
-    const metroSound = this.createArtist({ name: "Metro Sound", imageUrl: "https://images.unsplash.com/photo-1514533212735-5df27d970db0", description: "Urban music producer with a knack for rhythmic beats" });
-
-    // Create albums
-    const neonHorizon = this.createAlbum({ title: "Neon Horizon", artistId: cyberDreams.id, imageUrl: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17", releaseYear: 2023, dominantColor: "#9D4EDD" });
-    const electricDreams = this.createAlbum({ title: "Electric Dreams", artistId: lunaRay.id, imageUrl: "https://images.unsplash.com/photo-1598387993281-cecf8b71a8f8", releaseYear: 2022, dominantColor: "#3E78B2" });
-    const synthWave = this.createAlbum({ title: "Synth Wave", artistId: digitalPulse.id, imageUrl: "https://images.unsplash.com/photo-1614613534528-3c6d0a9a8774", releaseYear: 2023, dominantColor: "#FF6B6B" });
-    const midnightForest = this.createAlbum({ title: "Midnight Forest", artistId: echoChamber.id, imageUrl: "https://images.unsplash.com/photo-1629276301820-0f3eedc29fd0", releaseYear: 2021, dominantColor: "#00F5D4" });
-    const urbanBeats = this.createAlbum({ title: "Urban Beats", artistId: metroSound.id, imageUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7", releaseYear: 2022, dominantColor: "#240046" });
-
-    // Create tracks for Neon Horizon
-    this.createTrack({ title: "Solar Flare", albumId: neonHorizon.id, artistId: cyberDreams.id, duration: 222, trackNumber: 1 });
-    this.createTrack({ title: "Cyber Night", albumId: neonHorizon.id, artistId: cyberDreams.id, duration: 195, trackNumber: 2 });
-    this.createTrack({ title: "Digital Echo", albumId: neonHorizon.id, artistId: cyberDreams.id, duration: 243, trackNumber: 3 });
-    this.createTrack({ title: "Future Fade", albumId: neonHorizon.id, artistId: cyberDreams.id, duration: 187, trackNumber: 4 });
-    
-    // Create tracks for Electric Dreams
-    this.createTrack({ title: "Neon Lights", albumId: electricDreams.id, artistId: lunaRay.id, duration: 255, trackNumber: 1 });
-    this.createTrack({ title: "Starlight", albumId: electricDreams.id, artistId: lunaRay.id, duration: 212, trackNumber: 2 });
-    this.createTrack({ title: "Moonbeam", albumId: electricDreams.id, artistId: lunaRay.id, duration: 228, trackNumber: 3 });
-    
-    // Create tracks for Synth Wave
-    this.createTrack({ title: "Digital Dreams", albumId: synthWave.id, artistId: digitalPulse.id, duration: 238, trackNumber: 1 });
-    this.createTrack({ title: "Pulse Wave", albumId: synthWave.id, artistId: digitalPulse.id, duration: 204, trackNumber: 2 });
-    this.createTrack({ title: "Binary Code", albumId: synthWave.id, artistId: digitalPulse.id, duration: 197, trackNumber: 3 });
-    
-    // Create tracks for Midnight Forest
-    this.createTrack({ title: "Deep Woods", albumId: midnightForest.id, artistId: echoChamber.id, duration: 275, trackNumber: 1 });
-    this.createTrack({ title: "Twilight Path", albumId: midnightForest.id, artistId: echoChamber.id, duration: 246, trackNumber: 2 });
-    
-    // Create tracks for Urban Beats
-    this.createTrack({ title: "City Lights", albumId: urbanBeats.id, artistId: metroSound.id, duration: 232, trackNumber: 1 });
-    this.createTrack({ title: "Midnight Drive", albumId: urbanBeats.id, artistId: metroSound.id, duration: 219, trackNumber: 2 });
-    
-    // Create user
-    const user = this.createUser({ username: "musiclover", password: "password123" });
-    
-    // Create playlists
-    const chillVibes = this.createPlaylist({ name: "Chill Vibes", userId: user.id, imageUrl: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17" });
-    const workoutMix = this.createPlaylist({ name: "Workout Mix", userId: user.id, imageUrl: "https://images.unsplash.com/photo-1598387993281-cecf8b71a8f8" });
-    const throwbackHits = this.createPlaylist({ name: "Throwback Hits", userId: user.id, imageUrl: "https://images.unsplash.com/photo-1629276301820-0f3eedc29fd0" });
-  }
-
-  // User operations
+export class DbStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    try {
+      return await db.query.users.findFirst({ where: eq(schema.users.id, id) });
+    } catch (error) {
+      console.error("Error in getUser:", error);
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    try {
+      return await db.query.users.findFirst({ where: eq(schema.users.username, username) });
+    } catch (error) {
+      console.error("Error in getUserByUsername:", error);
+      throw error;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const newUser: User = { ...user, id };
-    this.users.set(id, newUser);
-    return newUser;
+    try {
+      const hashedPassword = bcrypt.hashSync(user.password, 10);
+      const newUser = { ...user, password: hashedPassword };
+      const result = await db.insert(schema.users).values(newUser).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error;
+    }
   }
 
-  // Artist operations
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    try {
+      return bcrypt.compareSync(password, hash);
+    } catch (error) {
+      console.error("Error in verifyPassword:", error);
+      // It's generally better not to throw an error here for security reasons,
+      // but to return false. However, following the pattern of other methods for now.
+      throw error; 
+    }
+  }
+
   async getArtist(id: number): Promise<Artist | undefined> {
-    return this.artists.get(id);
+    try {
+      return await db.query.artists.findFirst({ where: eq(schema.artists.id, id) });
+    } catch (error) {
+      console.error("Error in getArtist:", error);
+      throw error;
+    }
   }
 
   async getArtists(): Promise<Artist[]> {
-    return Array.from(this.artists.values());
+    try {
+      return await db.query.artists.findMany();
+    } catch (error) {
+      console.error("Error in getArtists:", error);
+      throw error;
+    }
   }
 
   async createArtist(artist: InsertArtist): Promise<Artist> {
-    const id = this.artistIdCounter++;
-    const newArtist: Artist = { ...artist, id };
-    this.artists.set(id, newArtist);
-    return newArtist;
+    try {
+      const result = await db.insert(schema.artists).values(artist).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createArtist:", error);
+      throw error;
+    }
   }
 
-  // Album operations
   async getAlbum(id: number): Promise<Album | undefined> {
-    return this.albums.get(id);
+    try {
+      return await db.query.albums.findFirst({ where: eq(schema.albums.id, id) });
+    } catch (error) {
+      console.error("Error in getAlbum:", error);
+      throw error;
+    }
   }
 
   async getAlbums(): Promise<Album[]> {
-    return Array.from(this.albums.values());
+    try {
+      return await db.query.albums.findMany();
+    } catch (error) {
+      console.error("Error in getAlbums:", error);
+      throw error;
+    }
   }
 
   async getAlbumsByArtist(artistId: number): Promise<Album[]> {
-    return Array.from(this.albums.values()).filter(album => album.artistId === artistId);
+    try {
+      return await db.query.albums.findMany({ where: eq(schema.albums.artistId, artistId) });
+    } catch (error) {
+      console.error("Error in getAlbumsByArtist:", error);
+      throw error;
+    }
   }
 
   async createAlbum(album: InsertAlbum): Promise<Album> {
-    const id = this.albumIdCounter++;
-    const newAlbum: Album = { ...album, id };
-    this.albums.set(id, newAlbum);
-    return newAlbum;
+    try {
+      const result = await db.insert(schema.albums).values(album).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createAlbum:", error);
+      throw error;
+    }
   }
 
-  // Track operations
   async getTrack(id: number): Promise<Track | undefined> {
-    return this.tracks.get(id);
+    try {
+      return await db.query.tracks.findFirst({ where: eq(schema.tracks.id, id) });
+    } catch (error) {
+      console.error("Error in getTrack:", error);
+      throw error;
+    }
   }
 
   async getTracks(): Promise<Track[]> {
-    return Array.from(this.tracks.values());
+    try {
+      return await db.query.tracks.findMany();
+    } catch (error) {
+      console.error("Error in getTracks:", error);
+      throw error;
+    }
   }
 
   async getTracksByAlbum(albumId: number): Promise<Track[]> {
-    return Array.from(this.tracks.values())
-      .filter(track => track.albumId === albumId)
-      .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0));
+    try {
+      return await db.query.tracks.findMany({ 
+        where: eq(schema.tracks.albumId, albumId),
+        orderBy: [asc(schema.tracks.trackNumber)] 
+      });
+    } catch (error) {
+      console.error("Error in getTracksByAlbum:", error);
+      throw error;
+    }
   }
 
   async getTracksByArtist(artistId: number): Promise<Track[]> {
-    return Array.from(this.tracks.values()).filter(track => track.artistId === artistId);
+    try {
+      return await db.query.tracks.findMany({ where: eq(schema.tracks.artistId, artistId) });
+    } catch (error) {
+      console.error("Error in getTracksByArtist:", error);
+      throw error;
+    }
   }
 
   async createTrack(track: InsertTrack): Promise<Track> {
-    const id = this.trackIdCounter++;
-    const newTrack: Track = { ...track, id };
-    this.tracks.set(id, newTrack);
-    return newTrack;
+    try {
+      const result = await db.insert(schema.tracks).values(track).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createTrack:", error);
+      throw error;
+    }
   }
 
-  // Playlist operations
   async getPlaylist(id: number): Promise<Playlist | undefined> {
-    return this.playlists.get(id);
+    try {
+      return await db.query.playlists.findFirst({ where: eq(schema.playlists.id, id) });
+    } catch (error) {
+      console.error("Error in getPlaylist:", error);
+      throw error;
+    }
   }
 
   async getPlaylistsByUser(userId: number): Promise<Playlist[]> {
-    return Array.from(this.playlists.values()).filter(playlist => playlist.userId === userId);
+    try {
+      return await db.query.playlists.findMany({ where: eq(schema.playlists.userId, userId) });
+    } catch (error) {
+      console.error("Error in getPlaylistsByUser:", error);
+      throw error;
+    }
   }
 
   async createPlaylist(playlist: InsertPlaylist): Promise<Playlist> {
-    const id = this.playlistIdCounter++;
-    const newPlaylist: Playlist = { ...playlist, id, createdAt: new Date() };
-    this.playlists.set(id, newPlaylist);
-    return newPlaylist;
+    try {
+      const result = await db.insert(schema.playlists).values(playlist).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createPlaylist:", error);
+      throw error;
+    }
   }
 
   async updatePlaylist(id: number, playlist: Partial<InsertPlaylist>): Promise<Playlist | undefined> {
-    const existingPlaylist = this.playlists.get(id);
-    if (!existingPlaylist) return undefined;
-    
-    const updatedPlaylist = { ...existingPlaylist, ...playlist };
-    this.playlists.set(id, updatedPlaylist);
-    return updatedPlaylist;
+    try {
+      const result = await db.update(schema.playlists).set(playlist).where(eq(schema.playlists.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updatePlaylist:", error);
+      throw error;
+    }
   }
 
   async deletePlaylist(id: number): Promise<boolean> {
-    return this.playlists.delete(id);
+    try {
+      const result = await db.delete(schema.playlists).where(eq(schema.playlists.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in deletePlaylist:", error);
+      throw error;
+    }
   }
 
-  // Playlist tracks operations
   async getPlaylistTracks(playlistId: number): Promise<Track[]> {
-    const playlistTrackEntries = Array.from(this.playlistTracks.values())
-      .filter(pt => pt.playlistId === playlistId)
-      .sort((a, b) => a.position - b.position);
-    
-    return playlistTrackEntries.map(pt => {
-      const track = this.tracks.get(pt.trackId);
-      if (!track) throw new Error(`Track with id ${pt.trackId} not found`);
-      return track;
-    });
+    try {
+      const playlistTrackEntries = await db.query.playlistTracks.findMany({
+        where: eq(schema.playlistTracks.playlistId, playlistId),
+        orderBy: [asc(schema.playlistTracks.position)],
+        with: {
+          track: true
+        }
+      });
+      return playlistTrackEntries.map(pt => pt.track).filter(t => t !== null && t !== undefined) as Track[];
+    } catch (error) {
+      console.error("Error in getPlaylistTracks:", error);
+      throw error;
+    }
   }
 
   async addTrackToPlaylist(playlistTrack: InsertPlaylistTrack): Promise<PlaylistTrack> {
-    const id = this.playlistTrackIdCounter++;
-    const newPlaylistTrack: PlaylistTrack = { ...playlistTrack, id };
-    this.playlistTracks.set(id, newPlaylistTrack);
-    return newPlaylistTrack;
+    try {
+      // Ensure position is correctly handled, potentially by finding max position + 1 if not provided
+      if (playlistTrack.position === undefined || playlistTrack.position === null) {
+        const maxPositionResult = await db.select({ value: sql<number>`max(${schema.playlistTracks.position})`.mapWith(Number) })
+          .from(schema.playlistTracks)
+          .where(eq(schema.playlistTracks.playlistId, playlistTrack.playlistId));
+        playlistTrack.position = (maxPositionResult[0]?.value || 0) + 1;
+      }
+      const result = await db.insert(schema.playlistTracks).values(playlistTrack).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in addTrackToPlaylist:", error);
+      throw error;
+    }
   }
 
   async removeTrackFromPlaylist(playlistId: number, trackId: number): Promise<boolean> {
-    const entryToRemove = Array.from(this.playlistTracks.entries()).find(
-      ([_, pt]) => pt.playlistId === playlistId && pt.trackId === trackId
-    );
-    
-    if (!entryToRemove) return false;
-    
-    return this.playlistTracks.delete(entryToRemove[0]);
+    try {
+      const result = await db.delete(schema.playlistTracks).where(and(
+        eq(schema.playlistTracks.playlistId, playlistId),
+        eq(schema.playlistTracks.trackId, trackId)
+      )).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in removeTrackFromPlaylist:", error);
+      throw error;
+    }
   }
 
   async reorderPlaylistTrack(playlistId: number, trackId: number, newPosition: number): Promise<boolean> {
-    const playlistTrackEntries = Array.from(this.playlistTracks.entries())
-      .filter(([_, pt]) => pt.playlistId === playlistId)
-      .sort((a, b) => a[1].position - b[1].position);
-    
-    const trackToMove = playlistTrackEntries.find(([_, pt]) => pt.trackId === trackId);
-    if (!trackToMove) return false;
-    
-    const [id, pt] = trackToMove;
-    const updatedPt = { ...pt, position: newPosition };
-    this.playlistTracks.set(id, updatedPt);
-    
-    // Reorder other tracks as needed
-    playlistTrackEntries
-      .filter(([currentId, _]) => currentId !== id)
-      .forEach(([currentId, currentPt]) => {
-        if (newPosition <= currentPt.position && currentPt.position < pt.position) {
-          this.playlistTracks.set(currentId, { ...currentPt, position: currentPt.position + 1 });
-        } else if (pt.position < currentPt.position && currentPt.position <= newPosition) {
-          this.playlistTracks.set(currentId, { ...currentPt, position: currentPt.position - 1 });
+    try {
+      // This is a simplified reorder, more complex logic might be needed for production
+      // to correctly adjust other track positions.
+      const result = await db.update(schema.playlistTracks)
+        .set({ position: newPosition })
+        .where(and(
+          eq(schema.playlistTracks.playlistId, playlistId),
+          eq(schema.playlistTracks.trackId, trackId)
+        ))
+        .returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in reorderPlaylistTrack:", error);
+      throw error;
+    }
+  }
+  
+  async getRecentlyPlayed(userId: number, limit: number = 10): Promise<{ track: Track; album: Album; artist: Artist }[]> {
+    try {
+      const recentEntries = await db.query.recentlyPlayed.findMany({
+        where: eq(schema.recentlyPlayed.userId, userId),
+        orderBy: [desc(schema.recentlyPlayed.playedAt)],
+        limit: limit,
+        with: {
+          track: {
+            with: {
+              album: true,
+              artist: true,
+            }
+          }
         }
       });
-    
-    return true;
-  }
-
-  // Recently played operations
-  async getRecentlyPlayed(userId: number, limit: number = 10): Promise<{ track: Track; album: Album; artist: Artist }[]> {
-    const recentlyPlayedEntries = Array.from(this.recentlyPlayed.values())
-      .filter(rp => rp.userId === userId)
-      .sort((a, b) => b.playedAt.getTime() - a.playedAt.getTime())
-      .slice(0, limit);
-    
-    return recentlyPlayedEntries.map(rp => {
-      const track = this.tracks.get(rp.trackId);
-      if (!track) throw new Error(`Track with id ${rp.trackId} not found`);
       
-      const album = this.albums.get(track.albumId);
-      if (!album) throw new Error(`Album with id ${track.albumId} not found`);
-      
-      const artist = this.artists.get(track.artistId);
-      if (!artist) throw new Error(`Artist with id ${track.artistId} not found`);
-      
-      return { track, album, artist };
-    });
+      return recentEntries.map(rp => {
+        if (!rp.track || !rp.track.album || !rp.track.artist) {
+          console.warn("Missing related data for a recently played entry:", rp);
+          return null; 
+        }
+        return {
+          track: rp.track as Track,
+          album: rp.track.album as Album,
+          artist: rp.track.artist as Artist,
+        };
+      }).filter(item => item !== null) as { track: Track; album: Album; artist: Artist }[];
+    } catch (error) {
+      console.error("Error in getRecentlyPlayed:", error);
+      throw error;
+    }
   }
 
   async addRecentlyPlayed(recentlyPlayed: InsertRecentlyPlayed): Promise<RecentlyPlayed> {
-    const id = this.recentlyPlayedIdCounter++;
-    const newRecentlyPlayed: RecentlyPlayed = { ...recentlyPlayed, id, playedAt: new Date() };
-    this.recentlyPlayed.set(id, newRecentlyPlayed);
-    return newRecentlyPlayed;
+    try {
+      const result = await db.insert(schema.recentlyPlayed).values(recentlyPlayed).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in addRecentlyPlayed:", error);
+      throw error;
+    }
+  }
+
+  // Artist Update/Delete Implementations
+  async updateArtist(id: number, data: Partial<InsertArtist>): Promise<Artist | undefined> {
+    try {
+      const result = await db.update(schema.artists).set(data).where(eq(schema.artists.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateArtist:", error);
+      throw error;
+    }
+  }
+
+  async deleteArtist(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(schema.artists).where(eq(schema.artists.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in deleteArtist:", error);
+      throw error;
+    }
+  }
+
+  // Album Update/Delete Implementations
+  async updateAlbum(id: number, data: Partial<InsertAlbum>): Promise<Album | undefined> {
+    try {
+      // Potential: Add check if artistId in data exists if it's being updated
+      const result = await db.update(schema.albums).set(data).where(eq(schema.albums.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateAlbum:", error);
+      throw error;
+    }
+  }
+
+  async deleteAlbum(id: number): Promise<boolean> {
+    try {
+      // Potential: Consider cascading deletes or handling related tracks if album is deleted.
+      // For now, simple delete.
+      const result = await db.delete(schema.albums).where(eq(schema.albums.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in deleteAlbum:", error);
+      throw error;
+    }
+  }
+
+  // Track Update/Delete Implementations
+  async updateTrack(id: number, data: Partial<InsertTrack>): Promise<Track | undefined> {
+    try {
+      // Potential: Add checks if albumId or artistId in data exist if they are being updated
+      const result = await db.update(schema.tracks).set(data).where(eq(schema.tracks.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateTrack:", error);
+      throw error;
+    }
+  }
+
+  async deleteTrack(id: number): Promise<boolean> {
+    try {
+      // Potential: Remove from playlist_tracks as well?
+      const result = await db.delete(schema.tracks).where(eq(schema.tracks.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error in deleteTrack:", error);
+      throw error;
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();

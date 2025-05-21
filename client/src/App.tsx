@@ -1,20 +1,27 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/home";
 import Album from "@/pages/album";
 import Albums from "@/pages/albums";
 import Player from "@/pages/player";
+import { LoginPage } from "@/pages/login";
+import { RegisterPage } from "@/pages/register";
 import NotFound from "@/pages/not-found";
 import MiniPlayer from "@/components/mini-player";
 import Sidebar from "@/components/sidebar";
 import CustomCursor from "@/components/custom-cursor";
-import { Track } from "@/context/player-context";
+import { Track } from "@/context/player-context"; 
+import { AuthProvider, useAuth } from "@/context/auth-context";
+import { ProtectedRoute } from "@/components/protected-route"; // Added
 import { useState, useEffect } from "react";
 
-function App() {
+// A wrapper component to handle conditional rendering based on auth state
+function AppContent() {
   // We don't use usePlayer here anymore, we'll pass the needed props to children
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null); // This state might be better in PlayerContext
   const [title, setTitle] = useState("Soundwave Music Player");
+  const { isLoading: isAuthLoading, isAuthenticated } = useAuth();
+
 
   // Set up title when track changes
   useEffect(() => {
@@ -31,9 +38,14 @@ function App() {
   }, [title]);
 
   // This function will be called by child components when a track is playing
-  const updateCurrentTrack = (track: Track | null) => {
-    setCurrentTrack(track);
-  };
+  // const updateCurrentTrack = (track: Track | null) => {
+  //   setCurrentTrack(track);
+  // };
+
+  if (isAuthLoading) {
+    // You can render a global loading spinner here
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   return (
     <>
@@ -43,16 +55,27 @@ function App() {
         <main className="flex-1 overflow-y-auto custom-scrollbar h-full pb-20">
           <Switch>
             <Route path="/" component={Home} />
+            <Route path="/login" component={LoginPage} />
+            <Route path="/register" component={RegisterPage} />
             <Route path="/album/:id" component={Album} />
             <Route path="/albums" component={Albums} />
-            <Route path="/player" component={Player} />
+            <ProtectedRoute path="/player" component={Player} /> 
             <Route component={NotFound} />
           </Switch>
         </main>
       </div>
-      {currentTrack ? <MiniPlayer /> : null}
+      {/* MiniPlayer might also need context for currentTrack */}
+      {currentTrack ? <MiniPlayer /> : null} 
       <Toaster />
     </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

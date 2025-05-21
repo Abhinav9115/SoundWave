@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { playlists } from "@/lib/mockdata";
+// import { playlists } from "@/lib/mockdata"; // Mock data might not be needed if API is used
 import { usePlayer } from "@/context/player-context";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/auth-context"; // Added
+import { Button } from "@/components/ui/button"; // Added for login/logout buttons
 
 // Create interfaces for search and favorites
 interface SearchModalProps {
@@ -182,12 +184,26 @@ const Sidebar = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast } = useToast();
+  const { isAuthenticated, user, logout, isLoading: isAuthLoading } = useAuth(); // Use auth context
 
-  // Fetch playlists
-  const { data: playlistsData } = useQuery({
+  // Fetch playlists - this will now use the Authorization header if a token is present
+  const { data: playlistsData, refetch: refetchPlaylists } = useQuery<any[]>({ // Specify type for playlistsData
     queryKey: ['/api/playlists'],
     staleTime: 60000,
+    enabled: isAuthenticated, // Only fetch if authenticated
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchPlaylists();
+    }
+  }, [isAuthenticated, refetchPlaylists]);
+
+  const handleLogout = () => {
+    logout();
+    toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    navigate('/'); // Redirect to home or login page
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -244,6 +260,12 @@ const Sidebar = () => {
               </h1>
             </Link>
             <div className="flex items-center space-x-3">
+              {isAuthenticated && user && (
+                <div className="text-sm text-right hidden lg:block">
+                  <p className="font-semibold">{user.username}</p>
+                  {/* <p className="text-xs text-gray-400">View Profile</p> */}
+                </div>
+              )}
               <div 
                 className="hover:bg-white hover:bg-opacity-10 p-2 rounded-full transition-all cursor-pointer"
                 onClick={() => setNotificationsOpen(true)}
@@ -345,36 +367,58 @@ const Sidebar = () => {
             
             <div className="mt-8 space-y-1">
               <h2 className="text-xs uppercase text-gray-400 font-medium tracking-wider mb-2">Playlists</h2>
-              {(playlistsData || []).map((playlist: any) => (
-                <div key={playlist.id} className="flex items-center py-2 px-3 rounded-lg mb-1 hover:bg-white hover:bg-opacity-10 transition-all cursor-pointer">
-                  {playlist.imageUrl ? (
-                    <div className="w-6 h-6 rounded mr-3 flex-shrink-0 overflow-hidden">
-                      <img src={playlist.imageUrl} alt={playlist.name} className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className={`w-6 h-6 bg-gradient-to-br ${playlists.find(p => p.id === playlist.id)?.imageColor || 'from-purple-500 to-pink-500'} rounded mr-3 flex-shrink-0`}></div>
-                  )}
-                  <span className="truncate">{playlist.name}</span>
-                </div>
+              {isAuthenticated && playlistsData && playlistsData.map((playlist: any) => (
+                <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
+                  <div className="flex items-center py-2 px-3 rounded-lg mb-1 hover:bg-white hover:bg-opacity-10 transition-all cursor-pointer">
+                    {playlist.imageUrl ? (
+                      <div className="w-6 h-6 rounded mr-3 flex-shrink-0 overflow-hidden">
+                        <img src={playlist.imageUrl} alt={playlist.name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      // Fallback style if no imageColor is provided by mockdata or API
+                      <div className={`w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded mr-3 flex-shrink-0`}></div>
+                    )}
+                    <span className="truncate">{playlist.name}</span>
+                  </div>
+                </Link>
               ))}
               
-              {/* Placeholder playlists if API data not loaded */}
-              {!playlistsData && playlists.map(playlist => (
-                <div key={playlist.id} className="flex items-center py-2 px-3 rounded-lg mb-1 hover:bg-white hover:bg-opacity-10 transition-all cursor-pointer">
-                  <div className={`w-6 h-6 bg-gradient-to-br ${playlist.imageColor} rounded mr-3 flex-shrink-0`}></div>
-                  <span className="truncate">{playlist.name}</span>
-                </div>
-              ))}
-              
-              <button 
-                onClick={createPlaylist}
-                className="mt-3 text-highlight flex items-center hover:text-white transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Create Playlist</span>
-              </button>
+              {isAuthenticated && (
+                <button 
+                  onClick={createPlaylist} // This still uses a toast, actual creation needs a modal/form
+                  className="mt-3 text-highlight flex items-center hover:text-white transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Create Playlist</span>
+                </button>
+              )}
+            </div>
+
+            {/* Auth buttons */}
+            <div className="mt-auto pt-6 border-t border-gray-700 space-y-2">
+              {isAuthenticated ? (
+                <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-left">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Logout
+                </Button>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" className="w-full justify-start text-left">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button variant="ghost" className="w-full justify-start text-left">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>
