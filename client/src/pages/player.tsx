@@ -16,9 +16,9 @@ const Player = () => {
   }, [currentTrack, navigate]);
 
   const handleClose = () => {
-    navigate(-1);
+    navigate('/');
   };
-
+ 
   if (!currentTrack) {
     return (
       <motion.div 

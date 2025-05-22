@@ -1,5 +1,5 @@
 import { Track, Album, Artist } from "../context/player-context";
-
+ 
 // Album covers from Unsplash
 export const albumCovers = [
   "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17",

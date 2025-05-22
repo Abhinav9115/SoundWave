@@ -3,7 +3,7 @@ import { formatDuration } from "@/lib/mockdata";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Visualizer from "./visualizer";
-
+ 
 interface FullPlayerProps {
   onClose: () => void;
 }

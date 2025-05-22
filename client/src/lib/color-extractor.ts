@@ -1,7 +1,7 @@
 /**
  * Utility for extracting dominant colors from images
  */
-
+ 
 export async function extractDominantColor(imageUrl: string): Promise<string> {
   try {
     // Create a temporary image element

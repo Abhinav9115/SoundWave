@@ -1,6 +1,20 @@
 {
   "variant": "vibrant",
-  "primary": "hsl(270, 76%, 59%)",
-  "appearance": "dark",
-  "radius": 1.0
+  "themes": {
+    "vibrant": {
+      "primary": "hsl(270, 76%, 59%)",
+      "appearance": "dark",
+      "radius": 1.0
+    },
+    "ocean": {
+      "primary": "hsl(200, 80%, 60%)",
+      "appearance": "dark",
+      "radius": 1.0
+    },
+    "sunset": {
+      "primary": "hsl(30, 90%, 60%)",
+      "appearance": "dark",
+      "radius": 1.0
+    }
+  }
 }
