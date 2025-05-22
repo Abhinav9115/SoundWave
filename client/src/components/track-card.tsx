@@ -1,14 +1,14 @@
 import { Track } from "@/context/player-context";
-import { usePlayer } from "@/context/player-context";
-import { formatDuration } from "@/lib/mockdata"; // Assuming this is a valid utility
-import { motion } from "framer-motion"; // Keep for entry animation if desired
+import { usePlayer, PlayerContextType } from "@/context/player-context";
+import { formatDuration } from "@/lib/mockdata";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-
+ 
 interface TrackCardProps {
   track: Track;
-  style?: React.CSSProperties; // For potential inline styles from parent
-  animationDelay?: number; // For staggered entry animations
+  style?: React.CSSProperties;
+  animationDelay?: number;
 }
 
 const TrackCard = ({ track, style, animationDelay = 0 }: TrackCardProps) => {
@@ -16,34 +16,28 @@ const TrackCard = ({ track, style, animationDelay = 0 }: TrackCardProps) => {
   const [isCurrentTrack, setIsCurrentTrack] = useState(false);
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
   
-  let playerContext;
-  try {
-    playerContext = usePlayer();
-    useEffect(() => {
-      if (playerContext) {
-        const currentlyPlaying = playerContext.currentTrack?.id === track.id;
-        setIsCurrentTrack(currentlyPlaying);
-        setIsCurrentlyPlaying(currentlyPlaying && playerContext.isPlaying);
-      }
-    }, [playerContext?.currentTrack, playerContext?.isPlaying, track.id]);
-  } catch (error) {
-    console.log("Player context not available in track card");
-  }
-
-  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent playing if the click target was the play/pause button itself
-    if ((e.target as HTMLElement).closest('button')) {
-      return;
-    }
-    handlePlayPause();
-  };
+  // Safely use player context
+  const playerContext: PlayerContextType | null = usePlayer() || null;
   
-  const handlePlayPause = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    e?.stopPropagation(); // Prevent card click if button is clicked
+  // Update our local state when player context changes
+  useEffect(() => {
+    if (playerContext) {
+      const currentlyPlaying = playerContext.currentTrack?.id === track.id;
+      setIsCurrentTrack(currentlyPlaying);
+      setIsCurrentlyPlaying(currentlyPlaying && playerContext.isPlaying);
+    }
+  }, [playerContext?.currentTrack, playerContext?.isPlaying, track.id]);
+
+  const handlePlay = () => {
+    // Make sure the player context is available
     if (!playerContext) {
-      toast({ title: "Player not ready", description: "Please try again in a moment" });
+      toast({
+        title: "Player not ready",
+        description: "Please try again in a moment",
+      });
       return;
     }
+    
     if (isCurrentTrack) {
       playerContext.togglePlayPause();
     } else {
@@ -52,39 +46,38 @@ const TrackCard = ({ track, style, animationDelay = 0 }: TrackCardProps) => {
   };
 
   return (
-    <motion.div
-      className="group bg-card/50 hover:bg-card/70 rounded-xl p-4 flex items-center space-x-4 transition-all duration-200 ease-in-out cursor-pointer transform hover:scale-[1.02] focus-within:scale-[1.02] focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background"
-      style={{ ...style, animationDelay: `${animationDelay}s` }} // Keep existing style and animationDelay props
-      initial={{ opacity: 0, y: 20 }} // Keep entry animation
+    <motion.div 
+      className="glassmorphism rounded-xl p-4 flex items-center space-x-4 hover:bg-opacity-40 transition-all cursor-pointer animate-float"
+      style={{ 
+        ...style,
+        animationDelay: `${animationDelay}s`
+      }}
+      whileHover={{ y: -5 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: animationDelay }}
-      onClick={handleCardClick}
-      tabIndex={0} // Make it focusable
-      onKeyPress={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePlayPause(); }}
+      onClick={handlePlay}
     >
       <img 
-        src={track.album?.imageUrl || '/placeholder-album.png'} // Fallback image
-        alt={track.album?.title || 'Album cover'}
-        className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+        src={track.album?.imageUrl}
+        alt={`${track.title} album cover`}
+        className="w-14 h-14 rounded-lg object-cover"
       />
       <div className="flex-1 min-w-0">
-        <h3 className={`font-medium truncate ${isCurrentTrack ? 'text-primary' : 'group-hover:text-primary/80'}`}>{track.title}</h3>
-        <p className="text-gray-400 text-sm truncate">{track.artist?.name || 'Unknown Artist'}</p>
+        <h3 className={`font-medium truncate ${isCurrentTrack ? 'text-highlight' : ''}`}>{track.title}</h3>
+        <p className="text-gray-400 text-sm truncate">{track.artist?.name}</p>
       </div>
-      <div className="text-right flex flex-col items-center">
-        <p className="text-gray-400 text-sm mb-1">{formatDuration(track.duration)}</p>
-        <button 
-          className={`p-1 rounded-full transition-colors duration-200 ${isCurrentTrack ? 'text-primary hover:text-primary/80' : 'text-gray-400 hover:text-white group-hover:text-primary/80'}`} 
-          onClick={handlePlayPause}
-          aria-label={isCurrentTrack && isCurrentlyPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
-        >
+      <div className="text-right">
+        <p className="text-gray-400 text-sm">{formatDuration(track.duration)}</p>
+        <button className={`text-xl ${isCurrentTrack ? 'text-highlight' : ''} mt-1`} onClick={handlePlay}>
           {isCurrentTrack && isCurrentlyPlaying ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v2a1 1 0 002 0V9a1 1 0 00-1-1zm6 0a1 1 0 00-1 1v2a1 1 0 002 0V9a1 1 0 00-1-1z" clipRule="evenodd" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8.118v3.764a1 1 0 001.555.832l3.197-1.882a1 1 0 000-1.664l-3.197-1.882z" clipRule="evenodd" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           )}
         </button>

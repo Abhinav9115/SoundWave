@@ -4,20 +4,20 @@ import { Album } from "@/context/player-context";
 import AlbumCard from "@/components/album-card";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-
+ 
 const Albums = () => {
   const [filterValue, setFilterValue] = useState("");
   const { toast } = useToast();
   
   // Fetch all albums
-  const { data: albums, isLoading } = useQuery({
+  const { data: albums, isLoading } = useQuery<Album[]>({
     queryKey: ['/api/albums'],
     staleTime: 60000,
   });
 
   // Filter albums based on search input
   const filteredAlbums = albums ? 
-    albums.filter((album: any) => 
+    albums.filter((album: Album) => 
       album.title.toLowerCase().includes(filterValue.toLowerCase()) ||
       (album.artist?.name || '').toLowerCase().includes(filterValue.toLowerCase())
     ) : 

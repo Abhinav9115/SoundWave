@@ -6,23 +6,30 @@ import ArtistCard from "@/components/artist-card";
 import { motion } from "framer-motion";
 import { Album, Artist, Track } from "@/context/player-context";
 
+// Define the shape of the recently played item returned by the API
+type RecentlyPlayedItem = {
+  track: Track;
+  album: Album;
+  artist: Artist;
+}
+
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch featured albums
-  const { data: albums, isLoading: isLoadingAlbums } = useQuery({
+  const { data: albums, isLoading: isLoadingAlbums } = useQuery<Album[]>({
     queryKey: ['/api/albums'],
     staleTime: 60000,
   });
 
   // Fetch recently played tracks
-  const { data: recentlyPlayed, isLoading: isLoadingRecent } = useQuery({
+  const { data: recentlyPlayed, isLoading: isLoadingRecent } = useQuery<RecentlyPlayedItem[]>({
     queryKey: ['/api/recently-played'],
     staleTime: 60000,
   });
 
   // Fetch popular artists
-  const { data: artists, isLoading: isLoadingArtists } = useQuery({
+  const { data: artists, isLoading: isLoadingArtists } = useQuery<Artist[]>({
     queryKey: ['/api/artists'],
     staleTime: 60000,
   });
@@ -127,7 +134,7 @@ const Home = () => {
               ))
             ) : (
               // Actual recently played tracks
-              recentlyPlayed?.map((item: { track: Track }, index: number) => (
+              recentlyPlayed?.map((item: RecentlyPlayedItem, index: number) => (
                 <TrackCard 
                   key={`${item.track.id}-${index}`} 
                   track={item.track} 

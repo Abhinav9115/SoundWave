@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 interface VisualizerProps {
   isPlaying: boolean;
 }
-
+ 
 const Visualizer = ({ isPlaying }: VisualizerProps) => {
   const barsRef = useRef<HTMLDivElement>(null);
 

@@ -1,7 +1,7 @@
 import { usePlayer } from "@/context/player-context";
 import { formatDuration } from "@/lib/mockdata";
 import { useLocation } from "wouter";
-
+ 
 const MiniPlayer = () => {
   const { 
     currentTrack, 

@@ -5,32 +5,9 @@ import { motion } from "framer-motion";
 import TrackCard from "@/components/track-card";
 import AlbumCard from "@/components/album-card";
 import { PlayerProvider, usePlayer, PlayerContextType } from "@/context/player-context";
-// import { extractDominantColor } from "@/lib/color-extractor"; // Will use album.dominantColor from API
-import { Album as AlbumType, Track } from "@/context/player-context"; // Assuming this type includes dominantColor
-import { Button } from "@/components/ui/button"; // For styling play button
-
-// Helper to lighten/darken hex colors for hover effects (basic version)
-const shadeColor = (color: string, percent: number) => {
-  let R = parseInt(color.substring(1, 3), 16);
-  let G = parseInt(color.substring(3, 5), 16);
-  let B = parseInt(color.substring(5, 7), 16);
-
-  R = parseInt(String(R * (100 + percent) / 100));
-  G = parseInt(String(G * (100 + percent) / 100));
-  B = parseInt(String(B * (100 + percent) / 100));
-
-  R = (R < 255) ? R : 255;  
-  G = (G < 255) ? G : 255;  
-  B = (B < 255) ? B : 255;  
-
-  const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
-  const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
-  const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
-
-  return `#${RR}${GG}${BB}`;
-};
-
-
+import { extractDominantColor } from "@/lib/color-extractor";
+import { Album as AlbumType, Track } from "@/context/player-context";
+ 
 // Wrap the actual component in the provider
 const AlbumContent = () => {
   const [, navigate] = useLocation();
@@ -67,19 +44,17 @@ const AlbumContent = () => {
   }
   
   const { playTrack, isPlaying, currentTrack, togglePlayPause } = playerContext;
-  const [headerDominantColor, setHeaderDominantColor] = useState("rgba(157, 78, 221, 0.5)"); // For gradient
-  const [buttonDominantColor, setButtonDominantColor] = useState("#9D4EDD"); // For button
+  const [dominantColor, setDominantColor] = useState("rgba(157, 78, 221, 0.5)");
   const [isAllAlbumsLoading, setIsAllAlbumsLoading] = useState(true);
 
   // Fetch album details
-  // Assuming AlbumType from context or a new interface includes dominantColor
-  const { data: album = {} as AlbumType & { tracks: Track[], artist: { name: string, id: number, imageUrl: string }, dominantColor?: string }, isLoading: isLoadingAlbum } = useQuery<AlbumType & { tracks: Track[], artist: { name: string, id: number, imageUrl: string }, dominantColor?: string }>({
+  const { data: album = {}, isLoading: isLoadingAlbum } = useQuery({
     queryKey: [`/api/albums/${albumId}`],
     enabled: !!albumId,
     staleTime: 60000,
   });
 
-  // Fetch all albums for recommendations
+  // Fetch all albums for recommendations  
   const { data: allAlbums = [], isLoading: isLoadingAllAlbums } = useQuery({
     queryKey: ['/api/albums'],
     staleTime: 60000,
@@ -92,23 +67,17 @@ const AlbumContent = () => {
     }
   }, [allAlbums]);
 
-  // Set dominant color from album data
+  // Extract dominant color from album cover
   useEffect(() => {
-    if (album?.dominantColor) {
-      setHeaderDominantColor(`${album.dominantColor}80`); // Add 50% transparency for gradient
-      setButtonDominantColor(album.dominantColor);
-    } else if (album?.imageUrl) {
-      // Fallback if dominantColor is not in API response, but was expected.
-      // Or, if you want to always use client-side extraction for some reason.
-      // For now, we primarily rely on album.dominantColor from API.
-      // If client-side extraction is desired as a primary method:
-      // extractDominantColor(album.imageUrl).then(color => {
-      //   setHeaderDominantColor(`${color}80`);
-      //   setButtonDominantColor(color);
-      // }).catch(console.error);
-      console.log("Album has imageUrl but no dominantColor field, using default.");
-      setHeaderDominantColor("rgba(157, 78, 221, 0.5)"); // Default purple semi-transparent
-      setButtonDominantColor("#9D4EDD"); // Default purple solid
+    const albumData = album as any;
+    if (albumData?.imageUrl) {
+      extractDominantColor(albumData.imageUrl)
+        .then(color => {
+          setDominantColor(`${color}80`); // Add 50% transparency
+        })
+        .catch(error => {
+          console.error('Failed to extract color:', error);
+        });
     }
   }, [album]);
 
@@ -194,7 +163,7 @@ const AlbumContent = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           style={{
-            background: `linear-gradient(to right, ${headerDominantColor}, rgba(36, 0, 70, 0.3))`,
+            background: `linear-gradient(to right, ${dominantColor}, rgba(36, 0, 70, 0.3))`,
           }}
         >
           <div className="flex flex-col md:flex-row p-6 md:p-8 gap-6 relative z-10">
@@ -220,16 +189,11 @@ const AlbumContent = () => {
               <p className="text-xl mb-4">{albumData.artist?.name || 'Unknown Artist'}</p>
               
               <div className="flex items-center space-x-4 mb-6">
-                <Button
+                <motion.button 
+                  className={`${isCurrentAlbumPlaying ? 'bg-highlight text-secondary' : 'bg-primary'} px-6 py-2 rounded-full font-medium flex items-center space-x-2 hover:opacity-90 transition-all`}
                   onClick={handlePlayAll}
-                  className="px-6 py-2 rounded-full font-medium flex items-center space-x-2 transition-all"
-                  style={{ 
-                    backgroundColor: isCurrentAlbumPlaying ? shadeColor(buttonDominantColor, -20) : buttonDominantColor, // Darken on playing
-                    // Ensure text color has good contrast or set it dynamically
-                    color: 'white', // Assuming white text works, may need dynamic contrast logic
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = shadeColor(buttonDominantColor, isCurrentAlbumPlaying ? -30 : -10)}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = isCurrentAlbumPlaying ? shadeColor(buttonDominantColor, -20) : buttonDominantColor}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   {isCurrentAlbumPlaying ? (
                     <>
@@ -246,7 +210,7 @@ const AlbumContent = () => {
                       <span>Play</span>
                     </>
                   )}
-                </Button>
+                </motion.button>
                 <motion.button 
                   className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all"
                   whileHover={{ scale: 1.1 }}
