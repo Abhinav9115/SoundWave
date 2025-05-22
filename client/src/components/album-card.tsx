@@ -80,28 +80,25 @@ const AlbumCard = ({ album }: AlbumCardProps) => {
   };
 
   return (
-    <motion.div 
-      className="group cursor-pointer"
+    <div // Changed from motion.div for simpler Tailwind transitions
+      className="group cursor-pointer p-3 bg-card/50 hover:bg-card/70 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-[1.03] focus-within:scale-[1.03] focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background"
       onClick={handleClick}
-      whileHover={{ scale: 1.05 }}
-      transition={{ duration: 0.3 }}
+      tabIndex={0} // Make it focusable
+      onKeyPress={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
     >
-      <motion.div 
-        className="relative overflow-hidden rounded-xl aspect-square mb-3 transform transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.3 }}
+      <div 
+        className="relative overflow-hidden rounded-md aspect-square mb-3 shadow-lg group-hover:shadow-xl group-focus-within:shadow-xl transition-shadow duration-300"
       >
         <img 
           src={album.imageUrl} 
           alt={`${album.title} album cover`}
-          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+          className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105 group-focus-within:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-          <motion.button 
-            className={`${isCurrentAlbumPlaying ? 'bg-highlight' : 'bg-primary'} rounded-full w-12 h-12 flex items-center justify-center transform translate-y-4 group-hover:translate-y-0 transition-all duration-300`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <button // Changed from motion.button
+            className={`${isCurrentAlbumPlaying ? 'bg-highlight hover:bg-highlight/90' : 'bg-primary hover:bg-primary/90'} text-white rounded-full w-12 h-12 flex items-center justify-center transform translate-y-4 group-hover:translate-y-0 group-focus-within:translate-y-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-white/50`}
             onClick={handlePlay}
+            aria-label={isCurrentAlbumPlaying ? `Pause ${album.title}` : `Play ${album.title}`}
           >
             {isCurrentAlbumPlaying ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,12 +109,12 @@ const AlbumCard = ({ album }: AlbumCardProps) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
               </svg>
             )}
-          </motion.button>
+          </button>
         </div>
-      </motion.div>
-      <h3 className="font-medium text-lg">{album.title}</h3>
-      <p className="text-gray-400 text-sm">{album.artist?.name}</p>
-    </motion.div>
+      </div>
+      <h3 className="font-medium text-lg truncate group-hover:text-primary transition-colors duration-300">{album.title}</h3>
+      <p className="text-gray-400 text-sm truncate">{album.artist?.name || 'Unknown Artist'}</p>
+    </div>
   );
 };
 
